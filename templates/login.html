@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome</title>
+  <style>
+    body { margin:0; font-family:sans-serif; background:#f4f4f4; }
+    .center-box {
+        position:absolute; top:50%; left:50%;
+        transform:translate(-50%, -50%);
+        text-align:center;
+        background:#fff; padding:40px 60px;
+        border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.2);
+        min-width:320px;
+    }
+    h1 { margin-top:0; }
+    button, input[type="submit"] {
+        margin:15px; padding:12px 30px; font-size:1.1em;
+        border:none; border-radius:6px; cursor:pointer;
+    }
+    .kid    { background:#4caf50; color:#fff; }
+    .parent { background:#2196f3; color:#fff; }
+    .desc-btn {
+        position:fixed; top:15px; right:20px;
+        background:#ff9800; color:#fff; padding:8px 16px;
+        border:none; border-radius:6px; cursor:pointer;
+    }
+    /* modal */
+    .modal-bg {
+        position:fixed; inset:0; background:rgba(0,0,0,.4);
+        display:none; align-items:center; justify-content:center;
+    }
+    .modal {
+        background:#fff; padding:25px 35px; border-radius:8px;
+        max-width:400px; text-align:center;
+    }
+    input[type="text"] {
+        padding:10px; font-size:1.1em; border:1px solid #ccc;
+        border-radius:6px; width:80%; margin-bottom:10px;
+    }
+  </style>
+</head>
+<body>
+
+<button class="desc-btn" onclick="toggleModal()">Description</button>
+
+<div class="center-box">
+  {% if need_id %}
+      {% if role == 'kid' %}
+        <h1>Enter your Kids ID</h1>
+        <form method="post">
+            <input type="text" name="user_id" placeholder="e.g. K12345" required><br>
+            <input type="submit" value="Continue" class="kid">
+        </form>
+      {% elif role == 'parent' %}
+        <h1>Parent Login</h1>
+        <form method="post">
+            <input type="text" name="user_id" placeholder="Parent ID" required><br>
+            <input type="text" name="kid_id" placeholder="Child's ID to monitor" required><br>
+            <input type="submit" value="Continue" class="parent">
+        </form>
+      {% endif %}
+  {% else %}
+      <h1>Welcome to our app</h1>
+      <form method="post">
+          <button class="kid"    name="role" value="kid">I am a Kid</button>
+          <button class="parent" name="role" value="parent">I am a Parent</button>
+      </form>
+  {% endif %}
+</div>
+
+<!-- Description modal -->
+<div id="modal-bg" class="modal-bg" onclick="toggleModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+      <h3>About this app</h3>
+      <p>
+        A private, locally‑hosted AI chat powered by llama3.2.<br>
+        Kids and Parents have separate interfaces.<br>
+        Each prompt is categorized and stored by ID for safety.<br>
+        Parents can monitor prompt categories and rewriting stats.
+      </p>
+      <button onclick="toggleModal()">Close</button>
+  </div>
+</div>
+
+<script>
+function toggleModal(){
+  const bg = document.getElementById("modal-bg");
+  bg.style.display = bg.style.display === "flex" ? "none" : "flex";
+}
+</script>
+</body>
+</html>

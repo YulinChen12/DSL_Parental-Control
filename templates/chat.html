@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>{{ role }} Chat</title>
+<style>
+body{margin:0;font-family:sans-serif;background:#f4f4f4;display:flex;height:100vh}
+.sidebar{width:250px;background:#202123;color:#fff;display:flex;flex-direction:column}
+.sidebar header{padding:15px 18px;font-weight:bold;border-bottom:1px solid #333}
+.sidebar button{background:#343541;border:none;color:#fff;text-align:left;
+  padding:12px 16px;width:100%;cursor:pointer}
+.sidebar button:hover{background:#3e3f42}
+.sidebar .spacer{flex:1}
+.chat-pane{flex:1;display:flex;flex-direction:column;background:#fff;
+  border-left:1px solid #ddd}
+.header{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 18px;border-bottom:1px solid #ddd}
+.header h2{margin:0;font-size:1.1em}
+.header a{color:#2196f3;text-decoration:none}
+.messages{flex:1;padding:20px;overflow-y:auto}
+.message-wrapper{display:flex;margin-bottom:10px}
+.message{max-width:60%;padding:10px 15px;border-radius:18px;line-height:1.4;
+  box-shadow:1px 1px 3px rgba(0,0,0,.1);white-space:pre-wrap}
+.user{margin-left:auto;background:#e0f7fa}
+.model{margin-right:auto;background:#e8eaf6}
+.input-area{border-top:1px solid #ccc;padding:15px;display:flex}
+.input-area textarea{flex:1;resize:none;padding:10px;font-size:1em;
+  border-radius:4px;border:1px solid #ccc}
+.input-area button{margin-left:10px;padding:10px 18px;font-size:1em;border:none;
+  border-radius:4px;cursor:pointer;background:#2196f3;color:#fff}
+.input-area button:hover{background:#1976d2}
+.spinner{width:16px;height:16px;border:3px solid #999;border-top:3px solid #2196f3;
+  border-radius:50%;display:inline-block;animation:spin 1s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;
+  align-items:center;justify-content:center}
+.modal{background:#fff;padding:25px 35px;border-radius:8px;max-width:400px;text-align:center}
+</style>
+</head>
+<body>
+
+{% if role == "Kid" %}
+<div class="sidebar">
+  <header>KidsID: {{ user_id }}</header>
+  <button onclick="newChat()">＋ New Chat</button>
+  <div id="threads"></div>
+  <div class="spacer"></div>
+  <button onclick="location.href='/logout'">Logout</button>
+</div>
+{% endif %}
+
+<div class="chat-pane">
+  <div class="header">
+    <h2>{{ role }}GPT | User ID: {{ user_id }}</h2>
+    <div>
+      <a href="#" onclick="toggleModal()">Description</a> | 
+      <a href="/logout">Logout</a>
+    </div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <textarea id="prompt" rows="2" placeholder="Type your message..."></textarea>
+    <button onclick="sendPrompt()">Send</button>
+  </div>
+</div>
+
+<div id="modal-bg" class="modal-bg" onclick="toggleModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+      <h3>About this app</h3>
+      <p>This app is designed to provide a safe and interactive AI chat environment for children and their parents.<br><br>.</p>
+      <button onclick="toggleModal()">Close</button>
+  </div>
+</div>
+
+<script>
+const ROLE = "{{ role }}";
+let currentThread = sessionStorage.getItem("currentThread") || null;
+let conversation  = [];
+
+/* ---------- helpers -------------------------------------------- */
+function toggleModal(){
+  const bg=document.getElementById("modal-bg");
+  bg.style.display = bg.style.display==="flex" ? "none" : "flex";
+}
+
+/* ---------- sidebar -------------------------------------------- */
+async function loadThreads(){
+  if(ROLE!=="Kid") return;
+  const res  = await fetch("/history");
+  const list = await res.json();
+  const box  = document.getElementById("threads");
+  box.innerHTML = "";
+
+  list.forEach(t=>{
+      if(!t.turns.length) return;
+      const btn=document.createElement("button");
+      btn.dataset.id = t.id;
+      btn.textContent = t.turns[0].text.slice(0,25) || "(untitled)";
+      btn.onclick = ()=>selectThread(t.id);
+      box.appendChild(btn);
+  });
+
+  if(!currentThread || !list.some(t=>t.id===currentThread)){
+      const first = list.find(t=>t.turns.length) || list[0];
+      currentThread = first ? first.id : (await (await fetch("/new_thread")).json()).thread_id;
+  }
+  sessionStorage.setItem("currentThread", currentThread);
+  await loadConversation();
+}
+
+async function selectThread(id){
+  currentThread=id;
+  sessionStorage.setItem("currentThread", id);
+  await loadConversation();
+}
+
+async function newChat(){
+  const r=await fetch("/new_thread");
+  currentThread=(await r.json()).thread_id;
+  sessionStorage.setItem("currentThread", currentThread);
+  await loadThreads();                 // sidebar empty until first turn
+  conversation=[];
+  render();
+}
+
+/* ---------- chat pane ------------------------------------------ */
+async function loadConversation(){
+  if(ROLE!=="Kid") return;
+  const r=await fetch(`/history/${currentThread}`);
+  conversation=await r.json();
+  render();
+}
+
+function render(){
+  const box=document.getElementById("messages");
+  box.innerHTML="";
+  conversation.forEach(o=>{
+      const w=document.createElement("div");
+      w.className="message-wrapper";
+      const b=document.createElement("div");
+      b.className="message "+(o.role==="user"?"user":"model");
+      b.innerHTML=o.text.replace(/\n/g,"<br>");
+      w.appendChild(b);
+      box.appendChild(w);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+
+/* ---------- send prompt ---------------------------------------- */
+async function sendPrompt(){
+  const ta = document.getElementById("prompt");
+  const msg = ta.value.trim();
+  if (!msg) return;
+  ta.value = "";
+
+  // Step 1: show raw user input
+  conversation.push({ role: "user", text: msg });
+
+  // Step 2: show placeholder while thinking
+  conversation.push({ role: "model", text: "<span class='spinner'></span>Thinking…" });
+  render();
+  const idx = conversation.length - 1;
+
+  const r = await fetch("/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: msg, thread_id: currentThread })
+  });
+
+  const data = await r.json();
+  conversation.splice(idx, 1); // remove spinner
+
+  // Step 3: if rewritten, show rewritten prompt in chat
+  if (data.was_rewritten) {
+  if (ROLE === "Parent") {
+    conversation.push({ role: "user", text: `Original Prompt: ${data.original_prompt}` });
+    conversation.push({ role: "user", text: `Rewritten (${data.rewrite_category}): ${data.rewritten_prompt}` });
+  } else {
+    conversation.push({ role: "user", text: `REWRITTEN (${data.rewrite_category}): ${data.rewritten_prompt}` });
+  }
+}
+
+  // Step 4: add final model response
+  conversation.push({ role: "model", text: data.response });
+
+  currentThread = data.thread_id;
+  sessionStorage.setItem("currentThread", currentThread);
+  render();
+
+  if (!document.querySelector(`#threads button[data-id="${currentThread}"]`)) {
+    await loadThreads();
+  }
+}
+
+
+
+/* ---------- init ----------------------------------------------- */
+document.addEventListener("DOMContentLoaded", async ()=>{
+    if(ROLE==="Kid"){ await loadThreads(); }
+});
+</script>
+</body>
+<style>
+body {
+  margin: 0;
+  font-family: {% if role == "Kid" %}"Comic Sans MS", "Segoe UI", cursive{% else %}sans-serif{% endif %};
+  background: {% if role == "Kid" %}linear-gradient(to bottom right, #fdf6f0, #e0f7fa){% else %}#f4f4f4{% endif %};
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  background: {% if role == "Kid" %}#fff0f5{% else %}#202123{% endif %};
+  color: {% if role == "Kid" %}#333{% else %}#fff{% endif %};
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+.sidebar header {
+  padding: 15px 18px;
+  font-weight: bold;
+  border-bottom: 1px solid #ccc;
+}
+.sidebar button {
+  background: {% if role == "Kid" %}#fde2e4{% else %}#343541{% endif %};
+  border: none;
+  color: #000;
+  text-align: left;
+  padding: 12px 16px;
+  width: 100%;
+  cursor: pointer;
+  font-weight: bold;
+  border-bottom: 1px solid #f8d7da;
+}
+.sidebar button:hover {
+  background: #ffdede;
+}
+.sidebar .spacer {
+  flex: 1;
+}
+.chat-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(6px);
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  border-bottom: 1px solid #ddd;
+  background-color: {% if role == "Kid" %}#fff7fb{% else %}#fff{% endif %};
+}
+.header h2 {
+  margin: 0;
+  font-size: 1.1em;
+}
+.header a {
+  color: #2196f3;
+  text-decoration: none;
+}
+.messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+.message-wrapper {
+  display: flex;
+  margin-bottom: 12px;
+}
+.message {
+  max-width: 65%;
+  padding: 12px 18px;
+  border-radius: 18px;
+  line-height: 1.5;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  white-space: pre-wrap;
+  font-size: 1em;
+}
+.user {
+  margin-left: auto;
+  background: {% if role == "Kid" %}#c1f0f6{% else %}#e0f7fa{% endif %};
+  color: #000;
+}
+.model {
+  margin-right: auto;
+  background: {% if role == "Kid" %}#ffe4e6{% else %}#e8eaf6{% endif %};
+  color: #000;
+}
+.input-area {
+  border-top: 1px solid #ccc;
+  padding: 15px;
+  display: flex;
+  background: #fff;
+}
+.input-area textarea {
+  flex: 1;
+  resize: none;
+  padding: 10px;
+  font-size: 1em;
+  border-radius: 10px;
+  border: 2px solid #ccc;
+}
+.input-area button {
+  margin-left: 10px;
+  padding: 10px 18px;
+  font-size: 1em;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: {% if role == "Kid" %}#8ecae6{% else %}#2196f3{% endif %};
+  color: #fff;
+}
+.input-area button:hover {
+  background: {% if role == "Kid" %}#219ebc{% else %}#1976d2{% endif %};
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #999;
+  border-top: 3px solid #2196f3;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  background: #fff;
+  padding: 25px 35px;
+  border-radius: 8px;
+  max-width: 400px;
+  text-align: center;
+}
+</style>
+
+</html>

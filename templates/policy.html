@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Policy Maker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      padding: 40px;
+      max-width: 1200px;
+      margin: auto;
+    }
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+
+    .form-column, .list-column {
+      flex: 1;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1976d2;
+    }
+
+    .danger {
+      background: #f44336;
+    }
+
+    .danger:hover {
+      background: #d32f2f;
+    }
+
+    .policy-block {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9f9f9;
+      border-radius: 6px;
+      padding: 15px 20px;
+      margin-bottom: 15px;
+      border-left: 5px solid #2196f3;
+    }
+
+    .policy-body {
+      flex-grow: 1;
+    }
+
+    .policy-body strong {
+      display: block;
+      font-size: 1.05em;
+      margin-bottom: 5px;
+    }
+
+    .policy-controls {
+      flex-shrink: 0;
+      margin-left: 20px;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Custom Moderation Policies for Kid ID: {{ kid_id }}</h1>
+
+  <div class="container">
+    <!-- Left column: Create policy -->
+    <div class="form-column">
+      <form method="POST" action="/policy">
+        <label for="category">Select Category</label>
+        <select name="category" id="category" required>
+          <option value="" disabled selected>Choose a category</option>
+          <option value="rewrite">Rewrite</option>
+          <option value="respond">Respond</option>
+          <option value="block">Block</option>
+        </select>
+
+        <label for="policy">Policy Instruction</label>
+        <textarea name="policy" placeholder="e.g. If the child says 'lol', respond with 'haha'..." required></textarea>
+
+        <button type="submit">Create Policy</button>
+      </form>
+
+      <a href="/dashboard"><button>← Back to Dashboard</button></a>
+    </div>
+
+    <!-- Right column: Existing policies -->
+    <div class="list-column">
+      <h2>Existing Policies</h2>
+
+      {% for p in policies %}
+        {% if p.kid_id == kid_id %}
+          <div class="policy-block">
+            <div class="policy-body">
+              <strong>{{ p.type.capitalize() }} Policy</strong>
+              {{ p.text }}
+            </div>
+            <div class="policy-controls">
+              <form method="POST" action="/delete_policy" style="margin: 0;">
+                <input type="hidden" name="index" value="{{ loop.index0 }}">
+                <button class="danger" type="submit">Delete</button>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+</body>
+</html>
