@@ -16,15 +16,15 @@ Before running the app, make sure you download the following (instructions will 
 - ✅ The `llama3.2` model downloaded via Ollama  
 - ✅ Flask installed
 
+---
+### 2. Flask install:
+
 To install Flask (if you haven't already):
 
 ```bash
 pip install flask
 ```
-
----
-
-### 2. Install and Run LLM (llama3.2)
+### 3. Install and Run LLM (llama3.2)
 
 #### Step 1: Install Ollama
 
@@ -51,7 +51,7 @@ Leave this terminal running — it will keep the model alive for your app to use
 
 ---
 
-### 3. Running the App
+### 4. Running the App
 
 Once Flask is installed and `llama3.2` is running via Ollama:
 
@@ -67,7 +67,7 @@ http://localhost:5000
 
 ---
 
-### 4. Project Structure
+### 5. Project Structure
 
 ```
 DSL_Parental-Control/
@@ -84,7 +84,7 @@ DSL_Parental-Control/
 
 ---
 
-### 5. How It Works
+### 6. How It Works
 
 #### For Parents
 
@@ -103,7 +103,7 @@ DSL_Parental-Control/
 
 ---
 
-### 6. Example policy.json Format
+### 7. Example policy.json Format
 
 ```json
 {
