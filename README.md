@@ -55,6 +55,8 @@ Leave this terminal running — it will keep the model alive for your app to use
 
 Once Flask is installed and `llama3.2` is running via Ollama:
 
+Go to your local directory and open the terminal
+
 ```bash
 python app.py
 ```
