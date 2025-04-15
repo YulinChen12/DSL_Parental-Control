@@ -7,7 +7,9 @@ This is a local web application that helps parents define and enforce moderation
 
 ### 1. Prerequisites
 
-Before running the app, make sure you have the following:
+**First, Clone this repository to your local directory**
+
+Before running the app, make sure you download the following (instructions will be provided below):
 
 - ✅ Python 3.8 or newer installed  
 - ✅ [Ollama](https://ollama.com) installed and running locally  
