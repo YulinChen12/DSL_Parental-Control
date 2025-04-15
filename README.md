@@ -71,12 +71,12 @@ http://localhost:5000
 DSL_Parental-Control/
 ├── app.py                  # Main Flask app
 ├── policy.json             # Stores parent policies
-├── history.txt             # Logs prompts and rewrites
+├── history.txt             # Logs prompts and rewrites for the kids
 ├── templates/              # HTML pages for kid/parent views
 │   ├── chat.html
 │   ├── policy.html
-│   └── dashboard.html
-├── static/                 # CSS or JS (optional)
+│   └── parent.html
+    └── login.html
 └── README.md
 ```
 
