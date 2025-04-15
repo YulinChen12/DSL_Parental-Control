@@ -47,15 +47,6 @@ ollama run llama3.2
 
 Leave this terminal running — it will keep the model alive for your app to use.
 
-#### Step 4: Verify settings in `app.py`
-
-Make sure these lines are present in your code:
-
-```python
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "llama3.2"
-```
-
 ---
 
 ### 3. Running the App
